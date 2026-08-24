@@ -179,9 +179,9 @@ const BEATS = Object.freeze([
     ],
   },
   {
-    // The SVG is drawn as plan (x → screen-right, z → screen-down). A near-top
-    // camera on +Z with the default +Y up yields those exact screen axes.
-    id: 'plan', orb: [Math.PI / 2, 1.47, 1.18], fov: 30, off: [-0.037, 0.03],
+    // Captured plan-entry pose. Its target is a five-metre look-direction marker;
+    // the plan orbit resolves a collinear floor-height pivot on first interaction.
+    id: 'plan', eye: [-8.69, 30.18, 1.99], tgt: [-8.69, 25.18, 1.94], fov: 30.01, arcScale: 0, off: [-0.037, 0.03],
     place: 'right-bottom', zones: 'active', features: { plan: FEATURE_MOUNTS.plan },
   },
 ]);
@@ -895,6 +895,7 @@ export function createStory({ i18n, stage, copyLayer, pinLayer, rail, cueScrim, 
       };
     },
     get browsing() { return Boolean(browse); },
+    get browseFlying() { return Boolean(browse?.flying); },
     get scrollAuthority() {
       return {
         mode: scrollMode,

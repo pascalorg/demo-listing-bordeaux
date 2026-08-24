@@ -1,5 +1,5 @@
 import { LAYOUT_URL, PHOTO_CAMS } from '../config.js';
-import { Spherical, Vector3 } from 'three/webgpu';
+import { Spherical, Vector2, Vector3 } from 'three/webgpu';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const ROOM_COLORS = ['#e3a29b', '#efc56f', '#a9c98f', '#83bed0', '#b5a6d7', '#e0a9c2', '#9fc8ba', '#d6b68a', '#9ab7da'];
@@ -176,32 +176,54 @@ export function mountPlan({ stage, viewer, i18n, story, copyLayer }) {
   let cameraCone = null;
   let cameraDot = null;
   const cameraDirection = new Vector3();
+  const orbitDirection = new Vector3();
   const orbitOffset = new Vector3();
+  const orbitPivot = new Vector3();
   const orbitSpherical = new Spherical();
+  const pickNdc = new Vector2();
   let orbitActive = false;
+  let orbitContext = null;
   let orbitInitialized = false;
+  let orbitMinimumPhi = PLAN_POLAR_MIN;
   let orbitPointer = null;
   let orbitX = 0;
   let orbitY = 0;
+  let orbitTravel = 0;
+  let orbitDragged = false;
+  let planHoveredRecord = null;
+  let modelHoveredRecord = null;
 
-  function applyPlanOrbit({ camera, target }) {
-    if (!orbitActive) return;
-    if (!orbitInitialized) {
-      orbitSpherical.setFromVector3(orbitOffset.subVectors(camera.position, target));
-      orbitSpherical.phi = Math.max(PLAN_POLAR_MIN, Math.min(PLAN_POLAR_MAX, orbitSpherical.phi));
-      orbitInitialized = true;
+  function initializeOrbit(camera, target) {
+    orbitPivot.copy(target);
+    if (orbitContext === 'plan') {
+      orbitDirection.subVectors(target, camera.position).normalize();
+      const distanceToCenterHeight = (viewer.center.y - camera.position.y) / orbitDirection.y;
+      if (Number.isFinite(distanceToCenterHeight) && distanceToCenterHeight > 0) {
+        orbitPivot.copy(camera.position).addScaledVector(orbitDirection, distanceToCenterHeight);
+      }
     }
-    orbitOffset.setFromSpherical(orbitSpherical);
-    camera.position.copy(target).add(orbitOffset);
-    camera.lookAt(target);
+    orbitSpherical.setFromVector3(orbitOffset.subVectors(camera.position, orbitPivot));
+    orbitMinimumPhi = Math.min(PLAN_POLAR_MIN, orbitSpherical.phi);
+    orbitSpherical.phi = Math.max(orbitMinimumPhi, Math.min(PLAN_POLAR_MAX, orbitSpherical.phi));
+    orbitInitialized = true;
   }
 
-  function setOrbitActive(next) {
+  function applyPlanOrbit({ camera, target }) {
+    if (!orbitActive || !orbitInitialized || (orbitContext === 'room' && story.browseFlying)) return;
+    orbitOffset.setFromSpherical(orbitSpherical);
+    camera.position.copy(orbitPivot).add(orbitOffset);
+    target.copy(orbitPivot);
+    camera.lookAt(orbitPivot);
+  }
+
+  function setOrbitActive(next, context = null) {
     const enabled = Boolean(next);
-    if (orbitActive === enabled) return;
+    if (orbitActive === enabled && orbitContext === context) return;
     orbitActive = enabled;
+    orbitContext = enabled ? context : null;
     orbitInitialized = false;
     orbitPointer = null;
+    orbitDragged = false;
     document.body.classList.toggle('plan-orbit-active', orbitActive);
     story.setLookLocked('plan-orbit', orbitActive);
     story.setCameraOverride(orbitActive ? applyPlanOrbit : null);
@@ -209,25 +231,31 @@ export function mountPlan({ stage, viewer, i18n, story, copyLayer }) {
   }
 
   function orbitPointerDown(event) {
-    if (!orbitActive || event.button !== 0) return;
+    if (!orbitActive || event.button !== 0 || (orbitContext === 'room' && story.browseFlying)) return;
     orbitPointer = event.pointerId;
     orbitX = event.clientX;
     orbitY = event.clientY;
+    orbitTravel = 0;
+    orbitDragged = false;
+    setModelHoveredRecord(null);
+    if (!orbitInitialized) initializeOrbit(viewer.camera, story.copyCameraTarget(new Vector3()));
     stage.setPointerCapture?.(event.pointerId);
   }
 
   function orbitPointerMove(event) {
-    if (!orbitActive || event.pointerId !== orbitPointer) return;
-    if (!orbitInitialized) {
-      const target = story.copyCameraTarget(new Vector3());
-      orbitSpherical.setFromVector3(orbitOffset.subVectors(viewer.camera.position, target));
-      orbitSpherical.phi = Math.max(PLAN_POLAR_MIN, Math.min(PLAN_POLAR_MAX, orbitSpherical.phi));
-      orbitInitialized = true;
+    if (!orbitActive) return;
+    if (event.pointerId !== orbitPointer) {
+      updateModelHover(event);
+      return;
     }
-    orbitSpherical.theta -= (event.clientX - orbitX) * PLAN_ORBIT_SENSITIVITY;
+    const deltaX = event.clientX - orbitX;
+    const deltaY = event.clientY - orbitY;
+    orbitTravel += Math.hypot(deltaX, deltaY);
+    orbitDragged ||= orbitTravel > 4;
+    orbitSpherical.theta -= deltaX * PLAN_ORBIT_SENSITIVITY;
     orbitSpherical.phi = Math.max(
-      PLAN_POLAR_MIN,
-      Math.min(PLAN_POLAR_MAX, orbitSpherical.phi + (event.clientY - orbitY) * PLAN_ORBIT_SENSITIVITY),
+      orbitMinimumPhi,
+      Math.min(PLAN_POLAR_MAX, orbitSpherical.phi + deltaY * PLAN_ORBIT_SENSITIVITY),
     );
     orbitX = event.clientX;
     orbitY = event.clientY;
@@ -235,7 +263,53 @@ export function mountPlan({ stage, viewer, i18n, story, copyLayer }) {
   }
 
   function orbitPointerEnd(event) {
-    if (event.pointerId === orbitPointer) orbitPointer = null;
+    if (event.pointerId !== orbitPointer) return;
+    const clickRecord = event.type === 'pointerup' && !orbitDragged && orbitContext === 'plan'
+      ? recordAtPointer(event)
+      : null;
+    orbitPointer = null;
+    stage.releasePointerCapture?.(event.pointerId);
+    if (clickRecord) flyToRecord(clickRecord);
+    else updateModelHover(event);
+  }
+
+  function refreshHover() {
+    panel.querySelectorAll('.plan-zone').forEach((group) => {
+      group.classList.toggle('is-model-hovered', group.dataset.zoneKey === modelHoveredRecord?.key);
+    });
+    viewer.zones.highlight(selectedRecord?.id || planHoveredRecord?.id || modelHoveredRecord?.id || null);
+  }
+
+  function setPlanHoveredRecord(record) {
+    planHoveredRecord = record;
+    refreshHover();
+  }
+
+  function setModelHoveredRecord(record) {
+    if (modelHoveredRecord?.id === record?.id) return;
+    modelHoveredRecord = record;
+    refreshHover();
+  }
+
+  function recordAtPointer(event) {
+    if (!active || browsing || walking || expanded || event.pointerType !== 'mouse') return null;
+    const bounds = stage.getBoundingClientRect();
+    if (event.clientX < bounds.left || event.clientX > bounds.right
+      || event.clientY < bounds.top || event.clientY > bounds.bottom) return null;
+    pickNdc.set(
+      ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
+      -((event.clientY - bounds.top) / bounds.height) * 2 + 1,
+    );
+    return viewer.zones.pick(viewer.camera, pickNdc);
+  }
+
+  function updateModelHover(event) {
+    if (orbitPointer != null) return;
+    if (event.type === 'pointerleave') {
+      setModelHoveredRecord(null);
+      return;
+    }
+    setModelHoveredRecord(recordAtPointer(event));
   }
 
   function syncMobileAnchor() {
@@ -253,20 +327,22 @@ export function mountPlan({ stage, viewer, i18n, story, copyLayer }) {
     selectedRecord = null;
     panel.querySelectorAll('.plan-zone.is-selected').forEach((zone) => zone.classList.remove('is-selected'));
     roomAction.hidden = true;
-    viewer.zones.highlight(null);
+    refreshHover();
   }
 
   function selectRecord(record, group) {
     selectedRecord = record;
     panel.querySelectorAll('.plan-zone.is-selected').forEach((zone) => zone.classList.remove('is-selected'));
     group.classList.add('is-selected');
-    viewer.zones.highlight(record.id);
+    refreshHover();
     roomAction.hidden = false;
     const name = i18n.dictionary().zones[record.key]?.name || record.label;
     roomAction.textContent = `${i18n.t('ui.planEnter')} ${name} →`;
   }
 
   function flyToRecord(record) {
+    setPlanHoveredRecord(null);
+    setModelHoveredRecord(null);
     clearSelection();
     setExpanded(false);
     story.flyTo(cameraFor(record));
@@ -349,10 +425,10 @@ export function mountPlan({ stage, viewer, i18n, story, copyLayer }) {
       const area = svgElement('text', { x: record.position.x, y: record.position.z + 0.27, class: 'plan-area' });
       group.append(polygon, name, area);
       const enter = () => {
-        if (!mobileQuery.matches) viewer.zones.highlight(record.id);
+        if (!mobileQuery.matches) setPlanHoveredRecord(record);
       };
       const leave = () => {
-        if (!mobileQuery.matches) viewer.zones.highlight(null);
+        if (!mobileQuery.matches && planHoveredRecord?.id === record.id) setPlanHoveredRecord(null);
       };
       group.addEventListener('pointerenter', enter);
       group.addEventListener('pointerleave', leave);
@@ -441,7 +517,10 @@ export function mountPlan({ stage, viewer, i18n, story, copyLayer }) {
     const nextBrowsing = !state.docMode && state.browsing;
     const nextWalking = state.suspended && document.body.classList.contains('walkthrough-active');
     const nextVisible = !state.docMode && (!mobileQuery.matches || nextActive || nextWalking);
-    if (browsing && !nextBrowsing) viewer.zones.highlight(null);
+    if (browsing !== nextBrowsing || active !== nextActive) {
+      setPlanHoveredRecord(null);
+      setModelHoveredRecord(null);
+    }
     active = nextActive;
     browsing = nextBrowsing;
     walking = nextWalking;
@@ -454,8 +533,8 @@ export function mountPlan({ stage, viewer, i18n, story, copyLayer }) {
     panel.classList.toggle('is-walkthrough', walking);
     panel.setAttribute('aria-hidden', String(!visible));
     miniButton.disabled = walking;
-    if (!active && !expanded) viewer.zones.highlight(null);
-    setOrbitActive(nextActive && !state.suspended && !nextBrowsing && !expanded);
+    if (!active && !expanded) refreshHover();
+    setOrbitActive(nextActive && !state.suspended && !expanded, nextBrowsing ? 'room' : 'plan');
     updateCameraMarker();
     syncMobileAnchor();
   }
@@ -483,6 +562,7 @@ export function mountPlan({ stage, viewer, i18n, story, copyLayer }) {
   stage.addEventListener('pointermove', orbitPointerMove);
   stage.addEventListener('pointerup', orbitPointerEnd);
   stage.addEventListener('pointercancel', orbitPointerEnd);
+  stage.addEventListener('pointerleave', updateModelHover);
   build().catch((error) => console.error('Interactive plan failed to load', error));
   rebuildLabels();
   const unsubscribeLanguage = i18n.subscribe(rebuildLabels);
@@ -497,6 +577,7 @@ export function mountPlan({ stage, viewer, i18n, story, copyLayer }) {
     stage.removeEventListener('pointermove', orbitPointerMove);
     stage.removeEventListener('pointerup', orbitPointerEnd);
     stage.removeEventListener('pointercancel', orbitPointerEnd);
+    stage.removeEventListener('pointerleave', updateModelHover);
     setOrbitActive(false);
     document.body.classList.remove('plan-overlay-open');
     viewer.zones.highlight(null);

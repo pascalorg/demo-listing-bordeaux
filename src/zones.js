@@ -5,6 +5,8 @@ import {
   DoubleSide,
   Mesh,
   MeshBasicNodeMaterial,
+  Plane,
+  Raycaster,
   Shape,
   ShapeGeometry,
   Vector2,
@@ -118,6 +120,9 @@ export function createZones({ scene, model, labelLayer, i18n, invalidate }) {
   let labelJumpFrom = 0;
   let labelJumpStarted = 0;
   let lastTickTime = performance.now();
+  const pickRaycaster = new Raycaster();
+  const pickPlane = new Plane(new Vector3(0, 1, 0), -0.02);
+  const pickPoint = new Vector3();
 
   model.traverse((node) => {
     const data = node.userData;
@@ -213,6 +218,11 @@ export function createZones({ scene, model, labelLayer, i18n, invalidate }) {
 
   return {
     records,
+    pick(camera, ndc) {
+      pickRaycaster.setFromCamera(ndc, camera);
+      if (!pickRaycaster.ray.intersectPlane(pickPlane, pickPoint)) return null;
+      return records.find((record) => pointInPolygon([pickPoint.x, pickPoint.z], record.polygon)) ?? null;
+    },
     highlight(id) {
       if (id === highlighted) return;
       highlighted = id;

@@ -415,7 +415,8 @@ img { display: block; max-width: 100%; }
 .plan-paper { fill: #fbfaf5; }
 .plan-zone { cursor: pointer; outline: none; }
 .plan-zone polygon { fill: var(--room-fill); fill-opacity: .13; stroke: none; transition: fill-opacity .2s; }
-.plan-zone:hover polygon, .plan-zone:focus polygon, .plan-zone.is-selected polygon { fill-opacity: .58; }
+.plan-zone:hover polygon, .plan-zone:focus polygon, .plan-zone.is-selected polygon,
+.plan-zone.is-model-hovered polygon { fill-opacity: .58; }
 .plan-zone text { fill: #18221f; font-family: var(--sans); font-size: .22px; pointer-events: none; text-anchor: middle; }
 .plan-zone .plan-name { font-weight: 700; letter-spacing: .015em; }
 .plan-zone .plan-area { fill: #56705f; font-size: .19px; }

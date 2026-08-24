@@ -424,11 +424,15 @@ This means the GLB alone can reconstruct zone overlays and labels; the JSON is s
 
 ## Animations
 
-There are 27 animation clips:
+The original `lod0 (9)` recon source had 27 animation clips:
 
 - `14` cabinet/module “open” clips
 - `11` door “open” clips
 - `2` window “open” clips
+
+### Asset update — `lod0 (11)`
+
+The current `lod0 (11)` asset has **30 clips**. Compared with the immediately preceding repo GLB, its 1,336 node name/`pascalId` identity set and 30 clip-name set are unchanged (zero additions/removals); only clip ordering changed, with `window_cheeuc6e0qbb0e44: open` moving from the final slot to the fourth. Both story-scrub doors, that Chambre 1 window, and all 12 walkthrough click-to-open door ids still resolve to authored nodes and `: open` clips, so no reference remap was required.
 
 The apartment GLB contains no camera and no `spawn` semantic node. Pascal’s walkthrough controller therefore falls back to `[0, 1.65, 0]`, which is outside the apartment envelope near the balcony edge. A vanilla implementation should explicitly provide a start pose; a safe initial eye pose is approximately:
 
