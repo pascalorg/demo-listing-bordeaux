@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#151a19">
+  <title></title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23101716'/%3E%3Ctext x='32' y='45' text-anchor='middle' font-family='Georgia,serif' font-size='40' fill='white'%3EP%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./src/styles.css">
+</head>
+<body>
+  <header class="topbar" id="topbar">
+    <a class="brand" href="#hero" aria-label="Pascal">
+      <img src="./assets/pascal-logo-full.svg" alt="Pascal">
+    </a>
+    <p class="topline" data-i18n="ui.topline"></p>
+    <div class="top-actions">
+      <button class="walk-trigger walk-trigger-header" type="button" data-i18n="ui.walk"></button>
+      <button class="lang-toggle" id="lang-toggle" type="button" aria-live="polite"></button>
+    </div>
+  </header>
+
+  <div class="stage" id="stage" aria-busy="true">
+    <canvas id="viewer-canvas"></canvas>
+    <div class="stage-wash" aria-hidden="true"></div>
+    <p class="load-state" id="load-state" data-i18n="ui.loading"></p>
+    <p class="viewer-fallback" id="viewer-fallback" hidden></p>
+  </div>
+  <div class="copy-layer" id="copy-layer"></div>
+  <div class="pin-layer" id="pin-layer" aria-hidden="true"></div>
+  <div class="zone-label-layer" id="zone-label-layer" aria-hidden="true"></div>
+  <nav class="chapter-rail" id="chapter-rail"></nav>
+  <div class="scroll-cue-scrim" id="scroll-cue-scrim" aria-hidden="true"></div>
+  <p class="scroll-cue" id="scroll-cue" data-i18n="ui.scroll"></p>
+  <div class="story-track" id="story-track" aria-hidden="true"></div>
+
+  <main class="document" id="document">
+    <section class="document-section intro-section" id="details">
+      <div class="container">
+        <p class="eyebrow" data-i18n="document.factsK"></p>
+        <h2 data-i18n="document.factsH"></h2>
+        <div class="facts-grid" id="facts-grid"></div>
+      </div>
+    </section>
+
+    <section class="document-section">
+      <div class="container split">
+        <div>
+          <p class="eyebrow" data-i18n="document.surfacesK"></p>
+          <h2 data-i18n="document.surfacesH"></h2>
+          <table class="surface-table">
+            <caption data-i18n="document.surfacesCaption"></caption>
+            <tbody id="surface-body"></tbody>
+          </table>
+        </div>
+        <figure class="official-plan">
+          <img src="./assets/photos/plan-officiel.webp" loading="lazy" alt="" data-i18n-alt="document.planAlt">
+          <figcaption data-i18n="document.planCaption"></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="document-section gallery-section gallery-photos-section">
+      <div class="container">
+        <p class="eyebrow" data-i18n="document.galleryK"></p>
+        <h2 data-i18n="document.galleryH"></h2>
+        <div class="gallery" id="gallery"></div>
+      </div>
+    </section>
+
+    <section class="document-section pascal-section" id="pascal">
+      <div class="container pascal-grid">
+        <p class="pascal-mark" aria-hidden="true">P</p>
+        <div>
+          <p class="eyebrow" data-i18n="document.pascalK"></p>
+          <h2 data-i18n="document.pascalH"></h2>
+          <p class="pascal-pitch" data-i18n="document.pascalP"></p>
+          <div class="cta-row">
+            <button class="button button-primary walk-trigger" type="button" data-i18n="ui.walk"></button>
+            <a class="button button-secondary download-button" href="./assets/model/apartment.glb" download>
+              <span data-i18n="ui.download"></span>
+              <small data-i18n="ui.downloadHint"></small>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <a href="https://pascal.app" rel="noreferrer" aria-label="Pascal">
+      <img class="footer-logo" src="./assets/pascal-logo-full.svg" alt="Pascal">
+    </a>
+    <span data-i18n="footer.provenance"></span>
+  </footer>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
