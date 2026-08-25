@@ -1,43 +1,77 @@
-# Pascal apartment listing — Phase 2
+# Pascal · Cenon T4 — a property listing you scroll through in 3D
 
-A Bun + Vite, scroll-driven presentation of the Cenon Pascal capture. It uses the authored GLB at its original metre scale, Three.js WebGPU/TSL when available, and an explicit WebGL2 fallback.
+https://github.com/pascalorg/demo-listing-cenon/raw/main/docs/media/cenon-apt-listing.mp4
+
+**[▶ Live demo](https://demo-listing-cenon.vercel.app)** · [watch the video](docs/media/cenon-apt-listing.mp4)
+
+A real four-room flat in Cenon (Bordeaux right bank), presented as a scroll-driven cinematic story
+built directly on a **Pascal capture** — the GLB you fly through *is* the surveyed model of the
+apartment, at its original metre scale. No procedural stand-in geometry, no separate "3D section":
+the model is the page.
+
+Bun + Vite, vanilla ES modules, Three.js WebGPU/TSL with an explicit WebGL2 fallback. No framework.
 
 ## Run
 
 ```sh
 bun install
-bun run dev
+bun run dev     # open the URL Vite prints
 ```
 
-Open `http://localhost:5173`. Production commands are `bun run build` and `bun run preview`.
+`bun run build` produces a portable static `dist/`; `bun run preview` serves it.
 
-## Content and replacement files
+## What it does
 
-- `public/assets/model/apartment.glb` is the authored Pascal model and must stay in its original coordinate system.
-- `public/assets/data/layout.json` supplies opening and fence metadata; runtime zone geometry comes from the GLB extras.
-- `public/assets/diagnostics/` contains the official DPE A (48 kWhEP/m²/an) and GES C
-  (11 kgéqCO₂/m²/an) charts opened from the embedded figures-grid badges in the shared lightbox.
-- `public/assets/renders/` ships seven optimized 1920px WebPs: three séjour projections
-  (`bord-de-mer`, `boheme`, `scandinave`) and four Chambre 1 projections
-  (`scandinave`, `japandi`, `boheme`, `cosy`). They are included in the story switchers and gallery lightbox.
-- Confirm that source `photo-1` is Chambre 2 rather than Chambre 3.
-- Daylight uses the confirmed listing orientation: the north-east balcony edge maps to world +X.
+**The story.** Nine beats scroll from an aerial of the model down through the flat. Camera paths are
+hand-tuned waypoint curves, and the transitions pass *through* the building: the balcony French door
+swings open as the camera enters the séjour, a bedroom window opens to let it in from outside, the
+suite's pocket door opens on the way to the shower room. Every opening is scrubbed by scroll
+position — reverse the scroll and it closes — and stays consistent across deep links and reloads.
 
-## Interactive features
+**The look.** On WebGPU the scene renders through a screen-space GI pipeline (SSGI with real bounced
+light, recurrent denoise, TRAA) on a bounded convergence budget, then idles: nothing renders while
+nothing moves. `?look=sketch` swaps in the lighter stylised pass with ink outlines and no GI.
+WebGL2 browsers get the authored PBR scene directly, with shadows and IBL.
 
-- `?calib=sejour`, `?calib=chambre1`, and `?calib=salledeau` enable the development-only photo calibration overlay. Use WASD + QE for the eye, arrow keys for the target, `[` / `]` for FOV, Shift for fine steps, and `C` to log/copy the current values.
-- `?pose` enables the lightweight live camera-pose overlay in both story and walkthrough modes; press `C` to log/copy a paste-ready pose. Press `F` for unconstrained pointer-lock fly mode: mouse look, WASD, Q/E or Space/Ctrl vertically, Shift to accelerate, wheel to change speed, and `[` / `]` for FOV.
-- The staging beat dissolves to the current photograph and three shipped, decoded-on-selection séjour renders.
-- The bedroom and en-suite beats use photo-matched cameras with compact thumbnail cards that leave the 3D model visible around them; Chambre 1 also switches between its photograph and four shipped staging styles.
-- The balcony scrub uses a simple summer solar approximation for Cenon (44.857, −0.522), with world +X mapped to north-east so morning light reaches the balcony.
-- The generated SVG plan uses model polygons for interaction and official areas for display. Its persistent desktop mini-plan (also visible in walkthrough, and walkthrough-only on mobile) shows the live camera point and horizontal-FOV cone using the same X/Z orientation. Clicking expands the full panel; room clicks enter a temporary camera-browse pause, and scrolling resumes the story.
-- Fine-pointer story mode adds reduced-motion-aware mouse parallax plus clamped drag yaw/pitch that recentres during story travel. Discrete wheel input uses additive physical inertia with no idle snap, while trackpad, keyboard, scrollbar, deep-link, and below-story document scrolling stay native. Beat dwell uses a monotonic sinusoidal velocity dip rather than a stop plateau.
-- Desktop free visit uses click-to-acquire pointer lock, 0.002 rad/px look, 60° FOV, WASD/arrow keys, Shift run, and `P` pointer release/reacquire. Escape exits and restores the exact story scroll position. Mobile keeps drag-to-look and a hold-to-walk-forward control. Both use polygon bounds and authored door openings.
+**The plan.** A generated SVG plan drawn from the model's own polygons, with official areas for
+display. Hovering a room highlights it in the 3D model and vice-versa; clicking flies to that room,
+where the camera can be freely orbited. A persistent mini-plan tracks the live camera position and
+field-of-view cone.
 
-The authored balcony door opens on approach, and the suite pocket door opens during the transition into the shower-room beat.
+**Free visit.** "Visiter librement" takes pointer lock directly: WASD to walk, Shift to run, and a
+centre reticle that picks up doors within reach — click or `E` to open them. Escape returns you to
+the exact scroll position you left.
 
-## Performance notes
+**Daylight.** The balcony beat carries a time-of-day scrub using a solar approximation for Cenon
+(44.857, −0.522), with the balcony's north-east edge mapped to world +X.
 
-Three.js is pinned and self-hosted at `0.185.1`. Desktop DPR is capped at 1.5 and coarse-pointer/mobile DPR at 1.25. WebGPU uses the Pascal-style AO/denoise/ink pipeline; WebGL2 renders the authored PBR scene directly with shadows and IBL.
+**Two languages.** FR is the primary voice, EN the mirror; the default follows the browser, and an
+explicit choice persists.
 
-For demos and recording, `?dpr=N` overrides the DPR cap (clamped to 0.75–2 and still limited by the device DPR). On the WebGPU real look, `?gi=low`, `?gi=med`, or `?gi=high` selects the SSGI cost tier; `high` is the unchanged default. The GI knob is ignored by sketch and WebGL2 rendering.
+## Interactive and development flags
+
+| Flag | Effect |
+|---|---|
+| `?look=sketch` | Ink-outline stylised pass instead of the default realistic SSGI look |
+| `?dpr=N` | Override the DPR cap (clamped 0.75–2, still bounded by the device) — useful for screen recording |
+| `?gi=low\|med\|high` | SSGI cost tier on the WebGPU real look; `high` is the default |
+| `?pose` | Live camera-pose overlay. `C` copies a paste-ready pose (with beat and transition progress); `F` enters unconstrained fly mode — mouse look, WASD, Q/E, Shift to accelerate, wheel for speed, `[` `]` for FOV |
+| `?calib=sejour\|chambre1\|salledeau` | Photo-calibration overlay for matching model cameras to photographs |
+| `?forceWebGL=1` | Force the WebGL2 fallback path |
+
+## Assets
+
+- `public/assets/model/apartment.glb` — the authored Pascal model; must stay in its original coordinate system.
+- `public/assets/data/layout.json` — opening and fence metadata; runtime zone geometry comes from the GLB extras.
+- `public/assets/photos/` — the listing photographs, several matched to model cameras.
+- `public/assets/renders/` — seven 1920px staging projections (séjour and Chambre 1) decoded on selection.
+- `public/assets/diagnostics/` — the official DPE A (48 kWhEP/m²/an) and GES C (11 kgéqCO₂/m²/an) charts.
+
+Three.js is pinned and self-hosted at `0.185.1`. Desktop DPR is capped at 1.5, coarse-pointer at 1.25.
+
+## Documentation
+
+- [`docs/SPEC.md`](docs/SPEC.md) — the product contract: content, copy, beat-by-beat behaviour.
+- [`docs/TECH_NOTES.md`](docs/TECH_NOTES.md) — GLB and scene-graph reconnaissance, layout mapping, Pascal viewer technique notes.
+- [`docs/rounds/`](docs/rounds) — the build log: one evidence report per development round, with the
+  screenshots and measurements each change was verified against.
