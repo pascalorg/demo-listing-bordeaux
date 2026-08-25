@@ -10,7 +10,9 @@
 A real four-room flat in Cenon (Bordeaux right bank), presented as a scroll-driven cinematic story
 built directly on a **Pascal capture** — the GLB you fly through *is* the surveyed model of the
 apartment, at its original metre scale. No procedural stand-in geometry, no separate "3D section":
-the model is the page.
+the model is the page. It was produced in the Pascal editor at
+[editor.pascal.app](https://editor.pascal.app) and exported as a GLB plus its layout JSON — see
+[Use your own apartment](#use-your-own-apartment) to do the same with yours.
 
 Bun + Vite, vanilla ES modules, Three.js WebGPU/TSL with an explicit WebGL2 fallback. No framework.
 
@@ -22,6 +24,29 @@ bun run dev     # open the URL Vite prints
 ```
 
 `bun run build` produces a portable static `dist/`; `bun run preview` serves it.
+
+## Use your own apartment
+
+This repo tells one flat's story, but the pipeline is generic. The two files that define the
+property both come out of the Pascal editor at **[editor.pascal.app](https://editor.pascal.app)** —
+model or capture your place there, then export:
+
+| Export | Goes to | What it carries |
+|---|---|---|
+| **GLB** | `public/assets/model/apartment.glb` | the geometry, materials and door/window animation clips — keep its original metre scale and coordinate system |
+| **Layout JSON** (scene graph) | `public/assets/data/layout.json` | zones, openings and fence metadata used for the plan, labels and collisions |
+
+That swap puts your building on screen. The rest of the story is authored per property:
+
+- **Cameras** — every beat and transition waypoint in `src/story.js` is hand-tuned to this flat.
+  Run with `?pose`, press `F` to fly anywhere, frame the shot, and press `C` to copy a
+  ready-to-paste `{ eye, tgt, fov }` along with the beat and transition progress it belongs to.
+- **Copy** — headlines, room names and figures live in the FR and EN dictionaries in `src/copy.js`.
+- **Openings** — the doors and the window that swing open as you scroll are referenced by node name;
+  [`docs/rounds/DOOR1-RESULT.md`](docs/rounds/DOOR1-RESULT.md) documents how they are mapped and
+  scrubbed against scroll position.
+- **Photos and renders** — replace `public/assets/photos/` and `public/assets/renders/`;
+  `?calib=<beat>` helps line a model camera up with a real photograph.
 
 ## What it does
 
