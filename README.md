@@ -39,3 +39,5 @@ The authored balcony door opens on approach, and the suite pocket door opens dur
 ## Performance notes
 
 Three.js is pinned and self-hosted at `0.185.1`. Desktop DPR is capped at 1.5 and coarse-pointer/mobile DPR at 1.25. WebGPU uses the Pascal-style AO/denoise/ink pipeline; WebGL2 renders the authored PBR scene directly with shadows and IBL.
+
+For demos and recording, `?dpr=N` overrides the DPR cap (clamped to 0.75–2 and still limited by the device DPR). On the WebGPU real look, `?gi=low`, `?gi=med`, or `?gi=high` selects the SSGI cost tier; `high` is the unchanged default. The GI knob is ignored by sketch and WebGL2 rendering.

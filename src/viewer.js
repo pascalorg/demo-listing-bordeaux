@@ -412,6 +412,7 @@ function createOpeningController(model, animations, invalidate, type) {
 }
 
 export async function createViewer({ canvas, stage, loadState, labelLayer, i18n }) {
+  const params = new URLSearchParams(location.search);
   const renderer = await createRenderer(canvas);
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.9;
@@ -426,9 +427,14 @@ export async function createViewer({ canvas, stage, loadState, labelLayer, i18n 
   scene.environment = createEnvironment();
   scene.environmentIntensity = 0.6;
 
+  const dprParameter = params.get('dpr');
+  const requestedDpr = dprParameter?.trim() ? Number(dprParameter) : Number.NaN;
+  const dprOverride = Number.isFinite(requestedDpr)
+    ? Math.min(2, Math.max(0.75, requestedDpr))
+    : null;
   const cappedPixelRatio = () => Math.min(
     devicePixelRatio || 1,
-    matchMedia('(pointer: coarse)').matches ? 1.25 : 1.5,
+    dprOverride ?? (matchMedia('(pointer: coarse)').matches ? 1.25 : 1.5),
   );
   let currentPixelRatio = cappedPixelRatio();
   renderer.setPixelRatio(currentPixelRatio);
@@ -469,9 +475,11 @@ export async function createViewer({ canvas, stage, loadState, labelLayer, i18n 
   const zones = createZones({ scene, model, labelLayer, i18n, invalidate });
   const doors = createOpeningController(model, gltf.animations, invalidate, 'door');
   const windows = createOpeningController(model, gltf.animations, invalidate, 'window');
-  const requestedLook = new URLSearchParams(location.search).get('look');
+  const requestedLook = params.get('look');
   const look = isWebGPU ? (requestedLook === 'sketch' ? 'sketch' : 'real') : 'direct';
-  if (isWebGPU) post = createPostPipeline(renderer, scene, camera, { look });
+  const requestedGi = params.get('gi');
+  const giQuality = ['low', 'med', 'high'].includes(requestedGi) ? requestedGi : 'high';
+  if (isWebGPU) post = createPostPipeline(renderer, scene, camera, { look, quality: giQuality });
   else camera.layers.enable(LAYERS.zone);
 
   function watchDevicePixelRatio() {

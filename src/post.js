@@ -38,20 +38,38 @@ import { temporalReproject } from 'three/addons/tsl/display/TemporalReprojectNod
 import { traa } from 'three/addons/tsl/display/TRAANode.js';
 import { LAYERS } from './config.js';
 
+const SSGI_BASE_QUALITY = Object.freeze({
+  expFactor: 2,
+  thickness: 1,
+  backfaceLighting: 0,
+  aoIntensity: 1,
+  giIntensity: 10,
+  useLinearThickness: false,
+  useScreenSpaceSampling: true,
+  useTemporalFiltering: true,
+});
+
 const POST_QUALITY = Object.freeze({
   convergenceFrames: 32,
   ssgi: Object.freeze({
-    sliceCount: 2,
-    stepCount: 8,
-    radius: 12,
-    expFactor: 2,
-    thickness: 1,
-    backfaceLighting: 0,
-    aoIntensity: 1,
-    giIntensity: 10,
-    useLinearThickness: false,
-    useScreenSpaceSampling: true,
-    useTemporalFiltering: true,
+    high: Object.freeze({
+      ...SSGI_BASE_QUALITY,
+      sliceCount: 2,
+      stepCount: 8,
+      radius: 12,
+    }),
+    med: Object.freeze({
+      ...SSGI_BASE_QUALITY,
+      sliceCount: 1,
+      stepCount: 8,
+      radius: 12,
+    }),
+    low: Object.freeze({
+      ...SSGI_BASE_QUALITY,
+      sliceCount: 1,
+      stepCount: 4,
+      radius: 7,
+    }),
   }),
   denoise: Object.freeze({
     radius: 5,
@@ -157,7 +175,7 @@ function preserveCameraViewOffset(traaPass, camera) {
   };
 }
 
-export function createPostPipeline(renderer, scene, camera, { look = 'real' } = {}) {
+export function createPostPipeline(renderer, scene, camera, { look = 'real', quality = 'high' } = {}) {
   const real = look !== 'sketch';
   const sceneLayers = new Layers();
   sceneLayers.set(LAYERS.scene);
@@ -220,7 +238,8 @@ export function createPostPipeline(renderer, scene, camera, { look = 'real' } = 
     scenePass.getTexture('diffuseColor').type = UnsignedByteType;
     const normal = sample((uv) => unpackRGBToNormal(packedNormal.sample(uv)));
     const giPass = ssgi(sceneColor, sceneDepth, normal, camera);
-    for (const [key, value] of Object.entries(POST_QUALITY.ssgi)) {
+    const ssgiQuality = POST_QUALITY.ssgi[quality] || POST_QUALITY.ssgi.high;
+    for (const [key, value] of Object.entries(ssgiQuality)) {
       if (key === 'useTemporalFiltering') giPass[key] = value;
       else giPass[key].value = value;
     }

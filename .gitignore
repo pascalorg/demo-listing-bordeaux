@@ -4,3 +4,5 @@ scratchpad/
 .vercel/
 .DS_Store
 .vercel
+*.blend
+*.blend1
