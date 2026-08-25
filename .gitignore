@@ -6,3 +6,4 @@ scratchpad/
 .vercel
 *.blend
 *.blend1
+docs/media/*.mp4

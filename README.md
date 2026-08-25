@@ -1,8 +1,11 @@
 # Pascal · Cenon T4 — a property listing you scroll through in 3D
 
-<video src="https://github.com/pascalorg/demo-listing-cenon/raw/main/docs/media/cenon-apt-listing.mp4" controls muted playsinline width="100%"></video>
+<!-- Video: replace the image link below with a bare github.com/user-attachments/assets/<uuid> URL
+     on its own line (drag the mp4 into any GitHub comment box to mint one) for an inline player. -->
 
-**[▶ Live demo](https://demo-listing-cenon.vercel.app)** · [watch the video](https://github.com/pascalorg/demo-listing-cenon/raw/main/docs/media/cenon-apt-listing.mp4)
+[![Watch the demo](docs/media/preview.jpg)](https://demo-listing-cenon.vercel.app)
+
+**[▶ Live demo](https://demo-listing-cenon.vercel.app)** · [download the video](https://github.com/pascalorg/demo-listing-cenon/releases/download/v1.0.0/cenon-apt-listing-github.mp4)
 
 A real four-room flat in Cenon (Bordeaux right bank), presented as a scroll-driven cinematic story
 built directly on a **Pascal capture** — the GLB you fly through *is* the surveyed model of the
